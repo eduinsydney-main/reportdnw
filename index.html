@@ -144,13 +144,66 @@ tbody td input:focus,tbody td select:focus,tbody td textarea:focus{outline:none;
   .rbox{box-shadow:none;border-radius:0;}
   input,select,textarea{border:none!important;}
 }
+
+/* ══ LOGIN OVERLAY ══ */
+#login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1a365d,#2a4a7f);display:flex;align-items:center;justify-content:center;z-index:10000;}
+#login-overlay.hidden{display:none;}
+.login-box{background:#fff;border-radius:16px;padding:44px 38px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.3);max-width:360px;width:90%;}
+.login-box .login-logo{font-size:36px;margin-bottom:10px;}
+.login-box h2{font-size:20px;font-weight:700;color:#1a365d;margin-bottom:6px;}
+.login-box .login-sub{font-size:13px;color:#718096;margin-bottom:28px;line-height:1.5;}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;color:#2d3748;transition:all .15s;}
+.btn-google:hover{background:#f7fafc;border-color:#a0aec0;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+.google-icon{width:20px;height:20px;}
+.login-error{color:#e53e3e;font-size:12px;margin-top:14px;min-height:18px;}
+.login-footer{font-size:11px;color:#a0aec0;margin-top:20px;}
+
+/* ══ USER BADGE in header ══ */
+.user-info{display:flex;align-items:center;gap:10px;font-size:12px;}
+.user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.4);}
+.user-name{opacity:.85;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-signout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;}
+.btn-signout:hover{background:rgba(255,255,255,.25);}
 </style>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
+<!-- 로그인 오버레이 -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">✈</div>
+    <h2>유학팀 업무보고서</h2>
+    <p class="login-sub">팀원 전용 시스템입니다.<br>구글 계정으로 로그인해 주세요.</p>
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.5 30.2 0 24 0 14.7 0 6.8 5.4 2.9 13.3l7.8 6C12.5 13 17.8 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/>
+        <path fill="#FBBC05" d="M10.7 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.7-4.7l-7.8-6A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.9 10.7l7.8-6z"/>
+        <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.3-7.7 2.3-6.2 0-11.5-4.2-13.3-9.8l-7.8 6C6.8 42.6 14.7 48 24 48z"/>
+      </svg>
+      Google 계정으로 로그인
+    </button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-footer">허가된 팀원 계정만 접근 가능합니다</div>
+  </div>
+</div>
+
 <div class="app-header">
   <div class="logo">✈ 유학팀 업무보고서 <small>Study Abroad Team Reports</small></div>
-  <div class="save-indicator"><div class="save-dot" id="save-dot"></div><span id="save-txt">자동저장 대기</span></div>
+  <div class="user-info" id="user-info" style="display:none;">
+    <img class="user-avatar" id="user-avatar" src="" alt=""/>
+    <span class="user-name" id="user-name"></span>
+    <button class="btn-signout" onclick="signOutUser()">로그아웃</button>
+  </div>
+  <div class="save-indicator" id="save-indicator">
+    <div class="save-dot" id="save-dot"></div>
+    <span id="save-txt">자동저장 대기</span>
+  </div>
 </div>
 
 <div class="member-nav" id="member-nav"></div>
@@ -219,13 +272,115 @@ function sel(opts, val='') {
 }
 
 // ═══════════════════════════════════════════════
-// STORAGE
+// FIREBASE CONFIG
+// ═══════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDS1eB0lu7ffnT3DHyEHFdlkLuG-ujogq0",
+  authDomain: "eduin-sydney-bbd60.firebaseapp.com",
+  projectId: "eduin-sydney-bbd60",
+  storageBucket: "eduin-sydney-bbd60.firebasestorage.app",
+  messagingSenderId: "117941433369",
+  appId: "1:117941433369:web:1ae8df7f16e1504c00e688",
+  measurementId: "G-RGBGK33GTD"
+};
+firebase.initializeApp(firebaseConfig);
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+// 허가된 팀원 이메일
+const ALLOWED_EMAILS = [
+  'ddubell81@gmail.com',
+  'eduinsydney@gmail.com',
+  'koreaeduin7@gmail.com'
+];
+
+// ═══════════════════════════════════════════════
+// AUTH FUNCTIONS
+// ═══════════════════════════════════════════════
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  document.getElementById('login-error').textContent = '';
+  auth.signInWithPopup(provider).catch(err => {
+    document.getElementById('login-error').textContent = '로그인 오류: ' + err.message;
+  });
+}
+
+function signOutUser() {
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(user => {
+  if (user && ALLOWED_EMAILS.includes(user.email)) {
+    // 허가된 팀원 — 앱 표시
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('user-info').style.display = 'flex';
+    document.getElementById('user-avatar').src = user.photoURL || '';
+    document.getElementById('user-name').textContent = user.displayName || user.email;
+    document.getElementById('save-indicator').style.display = 'flex';
+    if (!window._appInitialized) { window._appInitialized = true; init(); }
+    else { MEMBERS.forEach(cfg => loadDailyView(cfg.id, todayStr)); }
+  } else if (user) {
+    // 로그인했지만 허가 안 된 계정
+    auth.signOut();
+    document.getElementById('login-error').textContent =
+      '접근 권한이 없는 계정입니다: ' + user.email;
+    document.getElementById('login-overlay').classList.remove('hidden');
+  } else {
+    // 로그아웃 상태
+    document.getElementById('login-overlay').classList.remove('hidden');
+    document.getElementById('user-info').style.display = 'none';
+  }
+});
+
+// ═══════════════════════════════════════════════
+// STORAGE (Firebase + localStorage 하이브리드)
 // ═══════════════════════════════════════════════
 const S = {
   dKey: (m,d) => `daily_${m}_${d}`,
   wKey: (m,w) => `weekly_${m}_${w}`,
-  save: (key,val) => { try{localStorage.setItem(key,JSON.stringify(val));}catch(e){} },
-  load: (key) => { try{const v=localStorage.getItem(key); return v?JSON.parse(v):null;}catch(e){return null;} },
+
+  // 저장: localStorage 즉시 + Firestore 백그라운드
+  save(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+    db.collection('reports').doc(key).set(val)
+      .catch(e => console.error('Firebase 저장 오류:', e));
+  },
+
+  // 로드: localStorage에서 즉시 반환 (UI 빠르게)
+  load(key) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
+    catch(e) { return null; }
+  },
+
+  // Firestore에서 최신 데이터 가져와 localStorage 동기화
+  async syncFromCloud(key) {
+    try {
+      const snap = await db.collection('reports').doc(key).get();
+      if (snap.exists) {
+        const data = snap.data();
+        localStorage.setItem(key, JSON.stringify(data));
+        return data;
+      }
+    } catch(e) { console.error('Firebase 동기화 오류:', e); }
+    return null;
+  },
+
+  // 실시간 구독 (다른 팀원이 저장하면 자동 반영)
+  _listeners: {},
+  subscribe(key, callback) {
+    if (this._listeners[key]) this._listeners[key]();
+    this._listeners[key] = db.collection('reports').doc(key)
+      .onSnapshot(snap => {
+        if (snap.exists) {
+          const data = snap.data();
+          try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
+          callback(data);
+        }
+      }, e => console.error('Firebase 리스너 오류:', e));
+  },
+  unsubscribe(key) {
+    if (this._listeners[key]) { this._listeners[key](); delete this._listeners[key]; }
+  }
 };
 
 // ═══════════════════════════════════════════════
@@ -814,12 +969,21 @@ function switchWDay(m, day, el) {
   document.getElementById(`${m}-wpanel-${day}`).classList.add('active');
 }
 
-function onDailyDateChange(m, date) {
+async function onDailyDateChange(m, date) {
+  // 먼저 로컬 데이터로 즉시 표시
   loadDailyView(m, date);
+  // Firestore에서 최신 데이터 동기화
+  const data = await S.syncFromCloud(S.dKey(m, date));
+  if (data) loadDailyView(m, date);
+  // 실시간 구독 (다른 팀원 편집 즉시 반영)
+  S.subscribe(S.dKey(m, date), () => loadDailyView(m, date));
 }
 
-function onWeekChange(m, weekStr) {
+async function onWeekChange(m, weekStr) {
   loadWeeklyView(m, weekStr);
+  const data = await S.syncFromCloud(S.wKey(m, weekStr));
+  if (data) loadWeeklyView(m, weekStr);
+  S.subscribe(S.wKey(m, weekStr), () => loadWeeklyView(m, weekStr));
 }
 
 function manualSync(m) {
@@ -1007,29 +1171,43 @@ function exportExcel(m) {
 }
 
 // ═══════════════════════════════════════════════
-// INIT
+// INIT (Firebase 인증 후 호출됨)
 // ═══════════════════════════════════════════════
-function init() {
+async function init() {
   buildUI();
   const weekStr = getWeekStr(today);
-  MEMBERS.forEach(cfg=>{
+
+  // 1) UI 즉시 렌더 (localStorage 기반)
+  MEMBERS.forEach(cfg => {
     const m = cfg.id;
-    // Set daily date to today
     const dDate = document.getElementById(`${m}-d-date`);
     if (dDate) dDate.value = todayStr;
-    // Set weekly week
     const wWeek = document.getElementById(`${m}-w-week`);
     if (wWeek) wWeek.value = weekStr;
-    // Load today's daily data
     loadDailyView(m, todayStr);
-    // Update headers
     updateDailyHeader(m, todayStr);
     updateWeeklyHeader(m, weekStr);
   });
   setSaveDot('saved');
-}
 
-init();
+  // 2) Firestore에서 최신 데이터 가져와 동기화
+  showToast('☁️ 클라우드에서 데이터 동기화 중...');
+  await Promise.all(MEMBERS.flatMap(cfg => [
+    S.syncFromCloud(S.dKey(cfg.id, todayStr)).then(data => {
+      if (data) loadDailyView(cfg.id, todayStr);
+    }),
+    S.syncFromCloud(S.wKey(cfg.id, weekStr)).then(data => {
+      if (data) { /* 주간은 탭 열 때 로드 */ }
+    }),
+  ]));
+  showToast('✅ 동기화 완료!');
+
+  // 3) 현재 활성 멤버(me) 실시간 구독 시작
+  S.subscribe(S.dKey('me', todayStr), () => {
+    const active = document.querySelector('#panel-me .report-view.active');
+    if (active?.id === 'me-daily') loadDailyView('me', todayStr);
+  });
+}
 </script>
 </body>
 </html>
