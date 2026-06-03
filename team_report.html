@@ -1,0 +1,1035 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>유학팀 업무보고서 통합관리</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Malgun Gothic','맑은 고딕',sans-serif;background:#f0f4f8;color:#2d3748;font-size:14px;}
+
+.app-header{background:linear-gradient(135deg,#1a365d,#2a4a7f);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);}
+.app-header .logo{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.app-header .logo small{font-size:11px;opacity:.65;font-weight:400;}
+.save-indicator{font-size:11px;opacity:.7;display:flex;align-items:center;gap:6px;}
+.save-dot{width:7px;height:7px;border-radius:50%;background:#6ee7b7;transition:background .3s;}
+.save-dot.saving{background:#fbbf24;}
+
+.member-nav{background:#1e3a5f;display:flex;padding:0 24px;gap:2px;overflow-x:auto;border-bottom:2px solid #143059;}
+.mtab{display:flex;align-items:center;gap:9px;padding:10px 18px;cursor:pointer;color:rgba(255,255,255,.55);font-size:13px;font-weight:600;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;}
+.mtab:hover{color:#fff;background:rgba(255,255,255,.06);}
+.mtab.active{color:#fff;border-bottom-color:#60a5fa;}
+.mtab .av{width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.av-me{background:#3b82f6;} .av-s1{background:#10b981;} .av-s2{background:#f59e0b;}
+.mtab .rbadge{font-size:10px;padding:2px 6px;border-radius:10px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.75);}
+
+.member-panel{display:none;} .member-panel.active{display:block;}
+
+.report-nav{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 28px;display:flex;gap:0;}
+.rtab{padding:12px 22px;cursor:pointer;font-size:13px;font-weight:600;color:#718096;border-bottom:3px solid transparent;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.rtab:hover{color:#1a56db;}
+.rtab.active{color:#1a56db;border-bottom-color:#1a56db;}
+
+.report-view{display:none;} .report-view.active{display:block;}
+
+.rbox{max-width:940px;margin:22px auto;background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,.08);overflow:hidden;}
+
+.rhead{padding:20px 30px;display:flex;align-items:center;justify-content:space-between;color:#fff;}
+.rhead h2{font-size:17px;font-weight:700;margin-bottom:2px;}
+.rhead .sub{font-size:11px;opacity:.75;}
+.rhead .right{font-size:12px;opacity:.85;text-align:right;line-height:1.7;}
+.head-blue{background:linear-gradient(135deg,#1a56db,#0e3fa3);}
+.head-s1{background:linear-gradient(135deg,#059669,#065f46);}
+.head-s2{background:linear-gradient(135deg,#d97706,#92400e);}
+
+.meta-bar{background:#f7faff;border-bottom:1px solid #e2e8f0;padding:11px 30px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;}
+.mi{display:flex;align-items:center;gap:6px;}
+.mi label{font-size:11px;color:#718096;font-weight:600;}
+.mi input,.mi select{border:1px solid #cbd5e0;border-radius:5px;padding:4px 8px;font-size:12px;font-family:inherit;color:#2d3748;background:#fff;}
+.mi input:focus,.mi select:focus{outline:none;border-color:#1a56db;}
+
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid #e2e8f0;}
+.kcard{padding:13px 14px;border-right:1px solid #e2e8f0;text-align:center;}
+.kcard:last-child{border-right:none;}
+.kcard .ki{font-size:17px;margin-bottom:3px;}
+.kcard .kv input{width:52px;font-size:20px;font-weight:700;color:#1a202c;border:none;text-align:center;font-family:inherit;background:transparent;}
+.kcard .kv input:focus{outline:none;}
+.kcard .kl{font-size:11px;color:#718096;margin-top:2px;}
+
+.content{padding:22px 30px;}
+.section{margin-bottom:22px;}
+.stitle{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.stitle .ico{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.ico-b{background:#dbeafe;} .ico-g{background:#d1fae5;} .ico-o{background:#fef3c7;}
+.ico-r{background:#fee2e2;} .ico-p{background:#ede9fe;} .ico-t{background:#ccfbf1;}
+.stitle h3{font-size:13px;font-weight:700;color:#1a202c;}
+.stitle .sync-note{font-size:11px;color:#10b981;margin-left:auto;font-weight:600;}
+
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead tr{background:#edf2f7;}
+thead th{padding:8px 9px;text-align:left;font-weight:600;color:#4a5568;border:1px solid #e2e8f0;}
+tbody tr:nth-child(even){background:#f7fafc;}
+tbody td{padding:7px 9px;border:1px solid #e2e8f0;vertical-align:middle;}
+tbody td input[type="text"],tbody td select,tbody td textarea{width:100%;border:none;background:transparent;font-size:12px;font-family:inherit;color:#2d3748;resize:none;}
+tbody td input:focus,tbody td select:focus,tbody td textarea:focus{outline:none;}
+.num-cell{text-align:center;color:#a0aec0;font-size:11px;width:22px;}
+.readonly-row{background:#f9fafb;}
+.readonly-row td{color:#374151;}
+
+.tbox{width:100%;border:1px solid #e2e8f0;border-radius:7px;padding:10px 12px;font-size:12px;font-family:inherit;color:#2d3748;resize:vertical;min-height:70px;line-height:1.6;}
+.tbox:focus{outline:none;border-color:#1a56db;}
+
+.add-btn{margin-top:5px;background:none;border:1px dashed #a0aec0;border-radius:5px;width:100%;padding:6px;color:#718096;font-size:11px;cursor:pointer;transition:all .15s;font-family:inherit;}
+.add-btn:hover{background:#edf2f7;color:#1a56db;border-color:#1a56db;}
+
+.day-tabs{display:flex;gap:3px;margin-bottom:9px;flex-wrap:wrap;}
+.dtab{padding:5px 13px;border-radius:14px;cursor:pointer;font-size:12px;font-weight:600;border:2px solid #e2e8f0;color:#4a5568;background:#fff;transition:all .15s;}
+.dtab.active{background:#1a56db;color:#fff;border-color:#1a56db;}
+.dtab:hover:not(.active){background:#edf2f7;}
+.dpanel{display:none;} .dpanel.active{display:block;}
+
+.prog-item{display:flex;align-items:center;gap:9px;margin-bottom:7px;}
+.prog-item .pl input{border:none;background:transparent;font-size:12px;font-family:inherit;color:#4a5568;width:95px;}
+.prog-item .pl input:focus{outline:none;}
+.prog-wrap{flex:1;background:#e2e8f0;border-radius:20px;height:11px;cursor:pointer;}
+.prog-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#1a56db,#60a5fa);transition:width .2s;}
+.prog-pct input{width:36px;border:none;background:transparent;font-size:11px;font-weight:700;color:#1a56db;font-family:inherit;text-align:right;}
+.prog-pct input:focus{outline:none;}
+
+.sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.sum-card{border:1px solid #e2e8f0;border-radius:8px;padding:12px;}
+.sum-card .st{font-size:11px;color:#718096;font-weight:600;margin-bottom:5px;}
+.sum-card textarea{width:100%;border:none;resize:none;font-size:12px;font-family:inherit;color:#2d3748;min-height:70px;line-height:1.6;}
+.sum-card textarea:focus{outline:none;}
+.sc-g{border-top:3px solid #10b981;} .sc-o{border-top:3px solid #f59e0b;} .sc-b{border-top:3px solid #3b82f6;}
+
+.rfooter{background:#f7faff;border-top:1px solid #e2e8f0;padding:13px 30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.sign-row{display:flex;gap:22px;}
+.sbox{text-align:center;}
+.sbox .sl{font-size:11px;color:#718096;margin-bottom:4px;}
+.sbox .sline{border-bottom:1px solid #cbd5e0;width:88px;height:28px;}
+
+.btn-row{display:flex;gap:8px;align-items:center;}
+.btn{border:none;border-radius:7px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;}
+.btn-primary{background:#1a365d;color:#fff;}
+.btn-primary:hover{background:#1a56db;}
+.btn-excel{background:#217346;color:#fff;}
+.btn-excel:hover{background:#1a5c38;}
+.btn-link{background:#edf2f7;border:1px solid #e2e8f0;color:#4a5568;}
+.btn-link:hover{background:#e2e8f0;}
+
+.sync-bar{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:9px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#065f46;}
+.sync-bar strong{font-weight:700;}
+.btn-sync{background:#059669;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;}
+.btn-sync:hover{background:#047857;}
+
+.week-day-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.week-day-date{font-size:11px;color:#718096;}
+.no-data-msg{text-align:center;padding:20px;color:#a0aec0;font-size:12px;font-style:italic;}
+
+/* Theme overrides */
+.theme-s1 .rtab.active,.theme-s1 .add-btn:hover{color:#059669;} .theme-s1 .rtab.active{border-bottom-color:#059669;}
+.theme-s1 .dtab.active{background:#059669;border-color:#059669;}
+.theme-s1 .prog-fill{background:linear-gradient(90deg,#059669,#34d399);}
+.theme-s1 .prog-pct input{color:#059669;}
+.theme-s2 .rtab.active,.theme-s2 .add-btn:hover{color:#d97706;} .theme-s2 .rtab.active{border-bottom-color:#d97706;}
+.theme-s2 .dtab.active{background:#d97706;border-color:#d97706;}
+.theme-s2 .prog-fill{background:linear-gradient(90deg,#d97706,#fbbf24);}
+.theme-s2 .prog-pct input{color:#d97706;}
+
+@media(max-width:680px){.kpi-row{grid-template-columns:repeat(3,1fr);}.sum-grid{grid-template-columns:1fr;}}
+@media print{
+  .app-header,.member-nav,.report-nav,.btn,.add-btn,.day-tabs,.sync-bar{display:none!important;}
+  .member-panel,.report-view,.dpanel{display:block!important;}
+  .rbox{box-shadow:none;border-radius:0;}
+  input,select,textarea{border:none!important;}
+}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="logo">✈ 유학팀 업무보고서 <small>Study Abroad Team Reports</small></div>
+  <div class="save-indicator"><div class="save-dot" id="save-dot"></div><span id="save-txt">자동저장 대기</span></div>
+</div>
+
+<div class="member-nav" id="member-nav"></div>
+<div id="panels"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const MEMBERS = [
+  {id:'me', label:'나 (작성자)', role:'팀장', av:'나', avcls:'av-me', teamPH:'예) 미국유학팀'},
+  {id:'s1', label:'스태프 1',    role:'직원', av:'S1', avcls:'av-s1', teamPH:'예) 영국유학팀'},
+  {id:'s2', label:'스태프 2',    role:'직원', av:'S2', avcls:'av-s2', teamPH:'예) 호주유학팀'},
+];
+
+const DAY_NAMES = ['월','화','수','목','금'];
+const DAY_FULL  = ['월요일','화요일','수요일','목요일','금요일'];
+const DAYS = ['mon','tue','wed','thu','fri'];
+
+const CAT_OPTS   = ['입학지원','비자','서류작업','상담','학교연락','숙소','내부회의','기타'];
+const STAGE_OPTS = ['초기상담','서류준비','원서접수','합격/오퍼','비자준비','출국준비','재학중','사후관리'];
+const PRI_OPTS   = ['🔴 높음','🟠 중간','🟢 낮음'];
+const STATUS_OPTS= ['완료','진행중','보류','이월'];
+const CONTACT_OPTS = ['이메일','전화','화상미팅','문자/카톡','포털'];
+const RESOLVE_OPTS = ['처리완료','답장대기','미처리'];
+const SEV_OPTS   = ['🔴 긴급','🟠 높음','🟡 보통','🟢 낮음'];
+const ISSUE_STATUS = ['해결완료','처리중','모니터링','미해결'];
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+const today = new Date();
+const fmt = d => d.toISOString().split('T')[0];
+const pad = n => String(n).padStart(2,'0');
+const todayStr = fmt(today);
+
+function getWeekStr(d) {
+  const t = new Date(d);
+  t.setHours(0,0,0,0);
+  t.setDate(t.getDate() + 3 - ((t.getDay()+6)%7));
+  const w1 = new Date(t.getFullYear(),0,4);
+  const wn = 1 + Math.round(((t-w1)/86400000 - 3 + ((w1.getDay()+6)%7))/7);
+  return `${t.getFullYear()}-W${pad(wn)}`;
+}
+
+function getWeekDates(weekStr) {
+  const [yr, wn] = weekStr.split('-W').map(Number);
+  const jan4 = new Date(yr,0,4);
+  const mon = new Date(jan4);
+  mon.setDate(jan4.getDate() - ((jan4.getDay()+6)%7) + (wn-1)*7);
+  return Array.from({length:5}, (_,i) => { const d=new Date(mon); d.setDate(mon.getDate()+i); return fmt(d); });
+}
+
+function koDate(d) {
+  return new Date(d+'T00:00:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+}
+function koWeekRange(weekStr) {
+  const dates = getWeekDates(weekStr);
+  const ko = d => new Date(d+'T00:00:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric'});
+  const wn = weekStr.split('-W')[1];
+  return `${ko(dates[0])} ~ ${ko(dates[4])} · 제${wn}주차`;
+}
+
+function sel(opts, val='') {
+  return `<select>${opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('')}</select>`;
+}
+
+// ═══════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════
+const S = {
+  dKey: (m,d) => `daily_${m}_${d}`,
+  wKey: (m,w) => `weekly_${m}_${w}`,
+  save: (key,val) => { try{localStorage.setItem(key,JSON.stringify(val));}catch(e){} },
+  load: (key) => { try{const v=localStorage.getItem(key); return v?JSON.parse(v):null;}catch(e){return null;} },
+};
+
+// ═══════════════════════════════════════════════
+// COLLECT TABLE DATA
+// ═══════════════════════════════════════════════
+function collectTable(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return [];
+  return Array.from(tbody.rows).map(tr =>
+    Array.from(tr.querySelectorAll('input,select,textarea')).map(el => el.value)
+  );
+}
+
+function collectDaily(m) {
+  const date = document.getElementById(`${m}-d-date`)?.value || todayStr;
+  return {
+    date,
+    meta: {
+      name:  document.getElementById(`${m}-d-name`)?.value||'',
+      role:  document.getElementById(`${m}-d-role`)?.value||'',
+      team:  document.getElementById(`${m}-d-team`)?.value||'',
+    },
+    tasks:    collectTable(`${m}-task`),
+    students: collectTable(`${m}-student`),
+    contacts: collectTable(`${m}-contact`),
+    tomorrow: collectTable(`${m}-tomorrow`),
+    issues:   document.getElementById(`${m}-issues`)?.value||'',
+  };
+}
+
+function collectWeekly(m) {
+  const wk = document.getElementById(`${m}-w-week`)?.value || getWeekStr(today);
+  return {
+    week: wk,
+    meta: { name: document.getElementById(`${m}-w-name`)?.value||'', team: document.getElementById(`${m}-w-team`)?.value||'' },
+    kpi: Array.from(document.querySelectorAll(`#${m}-kpi .kv input`)).map(el=>el.value),
+    wstudents: collectTable(`${m}-wstudent`),
+    issues:    collectTable(`${m}-wissue`),
+    nextweek:  collectTable(`${m}-nextweek`),
+    prog:      Array.from(document.querySelectorAll(`#${m}-prog .prog-item`)).map(pi=>[
+      pi.querySelector('.pl input')?.value||'',
+      pi.querySelector('.prog-fill')?.style.width||'0%'
+    ]),
+    summary: {
+      good:    document.getElementById(`${m}-sum-good`)?.value||'',
+      improve: document.getElementById(`${m}-sum-improve`)?.value||'',
+      suggest: document.getElementById(`${m}-sum-suggest`)?.value||'',
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════
+// RENDER TABLE FROM DATA
+// ═══════════════════════════════════════════════
+function renderRow(type, vals=[]) {
+  const v = (i,d='') => vals[i]??d;
+  if (type==='task')
+    return `<tr><td class="num-cell">·</td>
+      <td><input type="text" value="${esc(v(0))}" placeholder="업무 내용"/></td>
+      <td>${sel(CAT_OPTS,v(1))}</td>
+      <td><input type="text" value="${esc(v(2))}" placeholder="학생/기관"/></td>
+      <td><input type="text" value="${esc(v(3))}" placeholder="예)2h" style="width:50px"/></td>
+      <td>${sel(STATUS_OPTS,v(4,'완료'))}</td>
+      <td><input type="text" value="${esc(v(5))}" placeholder="비고"/></td></tr>`;
+  if (type==='student')
+    return `<tr>
+      <td><input type="text" value="${esc(v(0))}" placeholder="학생명"/></td>
+      <td><input type="text" value="${esc(v(1))}" placeholder="국가/학교"/></td>
+      <td>${sel(STAGE_OPTS,v(2,'초기상담'))}</td>
+      <td><input type="text" value="${esc(v(3))}" placeholder="D-?"/></td>
+      <td>${sel(PRI_OPTS,v(4,'🔴 높음'))}</td>
+      <td><input type="text" value="${esc(v(5))}" placeholder="처리 내용 및 다음 액션"/></td></tr>`;
+  if (type==='contact')
+    return `<tr>
+      <td><input type="text" value="${esc(v(0))}" placeholder="기관/담당자"/></td>
+      <td>${sel(CONTACT_OPTS,v(1))}</td>
+      <td>${sel(RESOLVE_OPTS,v(2,'처리완료'))}</td>
+      <td><input type="text" value="${esc(v(3))}" placeholder="내용 요약"/></td></tr>`;
+  if (type==='tomorrow')
+    return `<tr><td class="num-cell">·</td>
+      <td><input type="text" value="${esc(v(0))}" placeholder="예정 업무"/></td>
+      <td>${sel(CAT_OPTS,v(1))}</td>
+      <td><input type="text" value="${esc(v(2))}" placeholder="관련 학생/기관"/></td>
+      <td>${sel(PRI_OPTS,v(3,'🔴 높음'))}</td>
+      <td><input type="text" value="${esc(v(4))}" placeholder="준비 사항"/></td></tr>`;
+  if (type==='wstudent')
+    return `<tr>
+      <td><input type="text" value="${esc(v(0))}" placeholder="학생명"/></td>
+      <td><input type="text" value="${esc(v(1))}" placeholder="국가/학교"/></td>
+      <td>${sel(STAGE_OPTS,v(2))}</td>
+      <td><input type="text" value="${esc(v(3))}" placeholder="이번 주 진행"/></td>
+      <td><input type="text" value="${esc(v(4))}" placeholder="다음 주 목표"/></td>
+      <td><input type="date" value="${esc(v(5))}"/></td>
+      <td><input type="text" value="${esc(v(6))}" placeholder="특이사항"/></td></tr>`;
+  if (type==='issue')
+    return `<tr>
+      <td><input type="text" value="${esc(v(0))}" placeholder="이슈 내용"/></td>
+      <td><input type="text" value="${esc(v(1))}" placeholder="학생/기관"/></td>
+      <td>${sel(SEV_OPTS,v(2,'🟡 보통'))}</td>
+      <td>${sel(ISSUE_STATUS,v(3,'처리중'))}</td>
+      <td><input type="text" value="${esc(v(4))}" placeholder="대응 방안"/></td>
+      <td><input type="text" value="${esc(v(5))}" placeholder="담당자/기한"/></td></tr>`;
+  if (type==='nextweek')
+    return `<tr><td class="num-cell">·</td>
+      <td><input type="text" value="${esc(v(0))}" placeholder="계획 내용"/></td>
+      <td>${sel(CAT_OPTS,v(1))}</td>
+      <td><input type="text" value="${esc(v(2))}" placeholder="관련 학생/기관"/></td>
+      <td><input type="date" value="${esc(v(3))}"/></td>
+      <td>${sel(PRI_OPTS,v(4,'🔴 높음'))}</td>
+      <td><input type="text" value="${esc(v(5))}" placeholder="준비 사항"/></td></tr>`;
+  return '';
+}
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderTable(tbodyId, type, rows) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const data = (rows && rows.length) ? rows : [[]];
+  tbody.innerHTML = data.map(r => renderRow(type,r)).join('');
+}
+
+// ═══════════════════════════════════════════════
+// LOAD DAILY / WEEKLY
+// ═══════════════════════════════════════════════
+function loadDailyView(m, date) {
+  const data = S.load(S.dKey(m, date));
+  if (data?.meta) {
+    const n=document.getElementById(`${m}-d-name`); if(n)n.value=data.meta.name||'';
+    const r=document.getElementById(`${m}-d-role`); if(r)r.value=data.meta.role||'';
+    const t=document.getElementById(`${m}-d-team`); if(t)t.value=data.meta.team||'';
+  }
+  renderTable(`${m}-task`,    'task',    data?.tasks    || [[]]);
+  renderTable(`${m}-student`, 'student', data?.students || [[]]);
+  renderTable(`${m}-contact`, 'contact', data?.contacts || [[]]);
+  renderTable(`${m}-tomorrow`, 'tomorrow', data?.tomorrow || [[]]);
+  const iss = document.getElementById(`${m}-issues`);
+  if (iss) iss.value = data?.issues||'';
+  updateDailyHeader(m, date);
+}
+
+function loadWeeklyDayTab(m, dayIdx, weekStr) {
+  const dates = getWeekDates(weekStr);
+  const date  = dates[dayIdx];
+  const panelId = `${m}-wpanel-${DAYS[dayIdx]}`;
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
+  const dateLabel = panel.querySelector('.week-day-date');
+  if (dateLabel) dateLabel.textContent = koDate(date);
+
+  const data = S.load(S.dKey(m, date));
+
+  // Tasks
+  const taskTbody = panel.querySelector('.w-task-body');
+  if (taskTbody) {
+    if (data?.tasks?.length) {
+      taskTbody.innerHTML = data.tasks.map(r=>renderRow('task',r)).join('');
+    } else {
+      taskTbody.innerHTML = `<tr><td colspan="7" class="no-data-msg">해당일 일일보고서 없음</td></tr>`;
+    }
+  }
+  // Students
+  const stuTbody = panel.querySelector('.w-stu-body');
+  if (stuTbody) {
+    if (data?.students?.length) {
+      stuTbody.innerHTML = data.students.map(r=>renderRow('student',r)).join('');
+    } else {
+      stuTbody.innerHTML = `<tr><td colspan="6" class="no-data-msg">해당일 학생 데이터 없음</td></tr>`;
+    }
+  }
+  // Go to daily link
+  const goBtn = panel.querySelector('.go-daily-btn');
+  if (goBtn) {
+    goBtn.onclick = () => {
+      const dDateEl = document.getElementById(`${m}-d-date`);
+      if (dDateEl) {
+        dDateEl.value = date;
+        loadDailyView(m, date);
+      }
+      switchReport(m, 'daily', document.querySelector(`#panel-${m} .rtab`));
+    };
+  }
+}
+
+function loadWeeklyView(m, weekStr) {
+  const wData = S.load(S.wKey(m, weekStr));
+  if (wData?.meta) {
+    const n=document.getElementById(`${m}-w-name`); if(n)n.value=wData.meta.name||'';
+    const t=document.getElementById(`${m}-w-team`); if(t)t.value=wData.meta.team||'';
+  }
+  // KPI
+  const kpiInputs = document.querySelectorAll(`#${m}-kpi .kv input`);
+  (wData?.kpi||[]).forEach((v,i)=>{ if(kpiInputs[i]) kpiInputs[i].value=v; });
+  // Weekly-specific tables
+  renderTable(`${m}-wstudent`, 'wstudent', wData?.wstudents||[[]]);
+  renderTable(`${m}-wissue`,   'issue',    wData?.issues   ||[[]]);
+  renderTable(`${m}-nextweek`, 'nextweek', wData?.nextweek ||[[]]);
+  // Progress
+  if (wData?.prog) {
+    const cont = document.getElementById(`${m}-prog`);
+    if (cont) {
+      cont.innerHTML = wData.prog.map(([label,pct])=>progRowHtml(label,pct)).join('');
+    }
+  }
+  // Summary
+  ['good','improve','suggest'].forEach(k=>{
+    const el=document.getElementById(`${m}-sum-${k}`); if(el)el.value=wData?.summary?.[k]||'';
+  });
+  // Load all day tabs
+  DAYS.forEach((_,i)=>loadWeeklyDayTab(m,i,weekStr));
+  // Update header
+  updateWeeklyHeader(m, weekStr);
+}
+
+function progRowHtml(label='신규 항목', pct='0%') {
+  return `<div class="prog-item">
+    <div class="pl"><input type="text" value="${esc(label)}"/></div>
+    <div class="prog-wrap" onclick="setP(this,event)"><div class="prog-fill" style="width:${pct}"></div></div>
+    <div class="prog-pct"><input type="text" value="${pct}" oninput="syncP(this)"/></div>
+  </div>`;
+}
+
+function updateDailyHeader(m, date) {
+  const el = document.getElementById(`${m}-d-datestr`);
+  if (el) el.innerHTML = `${koDate(date)}<br>일일보고서`;
+}
+function updateWeeklyHeader(m, weekStr) {
+  const el = document.getElementById(`${m}-w-datestr`);
+  if (el) el.innerHTML = koWeekRange(weekStr)+'<br>주간보고서';
+}
+
+// ═══════════════════════════════════════════════
+// AUTO-SAVE (debounced)
+// ═══════════════════════════════════════════════
+let saveTimer = null;
+function triggerSave(m) {
+  setSaveDot('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ doSave(m); setSaveDot('saved'); }, 600);
+}
+function setSaveDot(state) {
+  const dot = document.getElementById('save-dot');
+  const txt = document.getElementById('save-txt');
+  if (state==='saving') { dot.classList.add('saving'); if(txt)txt.textContent='저장 중...'; }
+  else { dot.classList.remove('saving'); if(txt)txt.textContent=`자동저장 완료 ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`; }
+}
+function doSave(m) {
+  const activeView = document.querySelector(`#panel-${m} .report-view.active`);
+  if (!activeView) return;
+  if (activeView.id === `${m}-daily`) {
+    const date = document.getElementById(`${m}-d-date`)?.value || todayStr;
+    S.save(S.dKey(m,date), collectDaily(m));
+    // Refresh weekly day tabs if weekly is loaded
+    const weekStr = document.getElementById(`${m}-w-week`)?.value || getWeekStr(today);
+    const dates = getWeekDates(weekStr);
+    const dayIdx = dates.indexOf(date);
+    if (dayIdx >= 0) loadWeeklyDayTab(m, dayIdx, weekStr);
+  } else {
+    const weekStr = document.getElementById(`${m}-w-week`)?.value || getWeekStr(today);
+    S.save(S.wKey(m,weekStr), collectWeekly(m));
+  }
+}
+
+// ═══════════════════════════════════════════════
+// BUILD HTML
+// ═══════════════════════════════════════════════
+function themeHead(m) {
+  if (m==='me') return 'head-blue';
+  if (m==='s1') return 'head-s1';
+  return 'head-s2';
+}
+
+function taskTableHtml(tbodyId) {
+  return `<table>
+    <thead><tr>
+      <th style="width:22px"></th>
+      <th style="width:22%">업무 내용</th><th style="width:11%">구분</th>
+      <th style="width:13%">담당 학생/기관</th><th style="width:7%">시간</th>
+      <th style="width:10%">상태</th><th>비고</th>
+    </tr></thead>
+    <tbody id="${tbodyId}">${renderRow('task')}</tbody>
+  </table>
+  <button class="add-btn" onclick="addRow('${tbodyId}','task')">+ 행 추가</button>`;
+}
+function studentTableHtml(tbodyId) {
+  return `<table>
+    <thead><tr>
+      <th style="width:11%">학생명</th><th style="width:13%">목표 국가/학교</th>
+      <th style="width:13%">단계</th><th style="width:8%">D-day</th>
+      <th style="width:10%">우선순위</th><th>금일 처리 / 다음 액션</th>
+    </tr></thead>
+    <tbody id="${tbodyId}">${renderRow('student')}</tbody>
+  </table>
+  <button class="add-btn" onclick="addRow('${tbodyId}','student')">+ 행 추가</button>`;
+}
+
+function weekDayPanelHtml(m, dayCode, dayName) {
+  return `<div id="${m}-wpanel-${dayCode}" class="dpanel${dayCode==='mon'?' active':''}">
+    <div class="week-day-header">
+      <span class="week-day-date"></span>
+      <button class="btn btn-link" style="font-size:11px;padding:4px 10px;" class="go-daily-btn">✏️ 일일보고서 편집</button>
+    </div>
+    <div class="stitle" style="margin-top:6px;"><div class="ico ico-b">📋</div><h3>업무 내역</h3><span class="sync-note">일일보고서 연동</span></div>
+    <table>
+      <thead><tr>
+        <th style="width:22px"></th><th style="width:22%">업무 내용</th><th style="width:11%">구분</th>
+        <th style="width:13%">담당 학생/기관</th><th style="width:7%">시간</th><th style="width:10%">상태</th><th>비고</th>
+      </tr></thead>
+      <tbody class="w-task-body"><tr><td colspan="7" class="no-data-msg">해당일 일일보고서 없음</td></tr></tbody>
+    </table>
+    <div class="stitle" style="margin-top:12px;"><div class="ico ico-g">🎓</div><h3>학생 관리</h3><span class="sync-note">일일보고서 연동</span></div>
+    <table>
+      <thead><tr>
+        <th style="width:11%">학생명</th><th style="width:13%">목표 국가/학교</th><th style="width:13%">단계</th>
+        <th style="width:8%">D-day</th><th style="width:10%">우선순위</th><th>처리 내용 / 다음 액션</th>
+      </tr></thead>
+      <tbody class="w-stu-body"><tr><td colspan="6" class="no-data-msg">해당일 학생 데이터 없음</td></tr></tbody>
+    </table>
+  </div>`;
+}
+
+function buildDailyHTML(cfg) {
+  const m = cfg.id;
+  return `
+  <div class="rbox">
+    <div class="rhead ${themeHead(m)}">
+      <div class="left"><h2>일일 업무 보고서</h2><div class="sub">Daily Report · 유학팀</div></div>
+      <div class="right" id="${m}-d-datestr"></div>
+    </div>
+    <div class="meta-bar">
+      <div class="mi"><label>보고일자</label>
+        <input type="date" id="${m}-d-date" onchange="onDailyDateChange('${m}',this.value)"/>
+      </div>
+      <div class="mi"><label>작성자</label>
+        <input type="text" id="${m}-d-name" placeholder="이름" style="width:78px" oninput="updateNavName('${m}',this.value)"/>
+      </div>
+      <div class="mi"><label>직책</label>
+        <input type="text" id="${m}-d-role" placeholder="${cfg.role}" style="width:65px" oninput="updateNavRole('${m}',this.value)"/>
+      </div>
+      <div class="mi"><label>소속팀</label>
+        <input type="text" id="${m}-d-team" placeholder="${cfg.teamPH}" style="width:100px"/>
+      </div>
+    </div>
+    <div class="content" data-member="${m}" data-view="daily">
+
+      <div class="sync-bar">
+        <span>💡 입력 내용은 <strong>자동으로 주간보고서에 연동</strong>됩니다. 날짜 변경 시 해당일 데이터가 로드됩니다.</span>
+        <button class="btn-sync" onclick="manualSync('${m}')">주간보고서 즉시 반영</button>
+      </div>
+
+      <div class="section">
+        <div class="stitle"><div class="ico ico-b">📋</div><h3>금일 업무 현황</h3></div>
+        ${taskTableHtml(`${m}-task`)}
+      </div>
+
+      <div class="section">
+        <div class="stitle"><div class="ico ico-g">🎓</div><h3>주요 학생 관리 현황</h3></div>
+        ${studentTableHtml(`${m}-student`)}
+      </div>
+
+      <div class="section">
+        <div class="stitle"><div class="ico ico-o">📧</div><h3>외부 연락 / 이메일 처리</h3></div>
+        <table>
+          <thead><tr>
+            <th style="width:22%">상대방</th><th style="width:13%">연락 수단</th>
+            <th style="width:12%">처리 여부</th><th>내용 요약</th>
+          </tr></thead>
+          <tbody id="${m}-contact">${renderRow('contact')}</tbody>
+        </table>
+        <button class="add-btn" onclick="addRow('${m}-contact','contact')">+ 행 추가</button>
+      </div>
+
+      <div class="section">
+        <div class="stitle"><div class="ico ico-p">📅</div><h3>내일 예정 업무</h3></div>
+        <table>
+          <thead><tr>
+            <th style="width:22px"></th><th style="width:24%">예정 업무</th><th style="width:12%">구분</th>
+            <th style="width:14%">관련 학생/기관</th><th style="width:10%">우선순위</th><th>준비 사항</th>
+          </tr></thead>
+          <tbody id="${m}-tomorrow">${renderRow('tomorrow')}</tbody>
+        </table>
+        <button class="add-btn" onclick="addRow('${m}-tomorrow','tomorrow')">+ 행 추가</button>
+      </div>
+
+      <div class="section">
+        <div class="stitle"><div class="ico ico-r">⚠️</div><h3>이슈 / 건의사항</h3></div>
+        <textarea class="tbox" id="${m}-issues" rows="3" placeholder="발생한 이슈, 건의사항을 기재해 주세요."></textarea>
+      </div>
+
+    </div>
+    <div class="rfooter">
+      <div class="sign-row">
+        <div class="sbox"><div class="sl">작성자</div><div class="sline"></div></div>
+        <div class="sbox"><div class="sl">팀장 확인</div><div class="sline"></div></div>
+        <div class="sbox"><div class="sl">실장 확인</div><div class="sline"></div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-link" onclick="switchReport('${m}','weekly',document.querySelector('#panel-${m} .rtab:nth-child(2)'))">📊 주간 보고서 →</button>
+        <button class="btn btn-primary" onclick="window.print()">🖨 인쇄</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildWeeklyHTML(cfg) {
+  const m = cfg.id;
+  const dayPanels = DAYS.map((d,i)=>weekDayPanelHtml(m,d,DAY_NAMES[i])).join('');
+  return `
+  <div class="rbox">
+    <div class="rhead ${themeHead(m)}">
+      <div class="left"><h2>주간 업무 보고서</h2><div class="sub">Weekly Report · 유학팀</div></div>
+      <div class="right" id="${m}-w-datestr"></div>
+    </div>
+    <div class="meta-bar">
+      <div class="mi"><label>보고 주차</label>
+        <input type="week" id="${m}-w-week" onchange="onWeekChange('${m}',this.value)"/>
+      </div>
+      <div class="mi"><label>작성자</label>
+        <input type="text" id="${m}-w-name" placeholder="이름" style="width:78px"/>
+      </div>
+      <div class="mi"><label>소속팀</label>
+        <input type="text" id="${m}-w-team" placeholder="${cfg.teamPH}" style="width:100px"/>
+      </div>
+    </div>
+
+    <div class="kpi-row" id="${m}-kpi">
+      <div class="kcard"><div class="ki">👥</div><div class="kv"><input type="text" value="0"/></div><div class="kl">신규 상담</div></div>
+      <div class="kcard"><div class="ki">📄</div><div class="kv"><input type="text" value="0"/></div><div class="kl">원서 접수</div></div>
+      <div class="kcard"><div class="ki">🎉</div><div class="kv"><input type="text" value="0"/></div><div class="kl">합격/오퍼</div></div>
+      <div class="kcard"><div class="ki">✈️</div><div class="kv"><input type="text" value="0"/></div><div class="kl">출국 완료</div></div>
+      <div class="kcard"><div class="ki">⚡</div><div class="kv"><input type="text" value="0"/></div><div class="kl">긴급 처리</div></div>
+    </div>
+
+    <div class="content" data-member="${m}" data-view="weekly">
+
+      <!-- 일별 업무 (일일보고서 연동) -->
+      <div class="section">
+        <div class="stitle"><div class="ico ico-b">📋</div><h3>일별 업무 내역</h3><span class="sync-note">📎 일일보고서 자동 연동</span></div>
+        <div class="day-tabs">
+          ${DAYS.map((d,i)=>`<div class="dtab${i===0?' active':''}" onclick="switchWDay('${m}','${d}',this)">${DAY_NAMES[i]}요일</div>`).join('')}
+        </div>
+        ${dayPanels}
+      </div>
+
+      <!-- 주간 학생 진행 (별도 입력) -->
+      <div class="section">
+        <div class="stitle"><div class="ico ico-t">🎓</div><h3>주간 학생 진행 현황</h3></div>
+        <table>
+          <thead><tr>
+            <th style="width:10%">학생명</th><th style="width:13%">목표 국가/학교</th><th style="width:12%">현재 단계</th>
+            <th style="width:16%">이번 주 진행</th><th style="width:14%">다음 주 목표</th>
+            <th style="width:10%">마감일</th><th>특이사항</th>
+          </tr></thead>
+          <tbody id="${m}-wstudent">${renderRow('wstudent')}</tbody>
+        </table>
+        <button class="add-btn" onclick="addRow('${m}-wstudent','wstudent')">+ 행 추가</button>
+      </div>
+
+      <!-- 업무 비중 -->
+      <div class="section">
+        <div class="stitle"><div class="ico ico-b">📊</div><h3>업무 구분별 처리 비중</h3></div>
+        <div id="${m}-prog">
+          ${progRowHtml('입학지원','60%')}
+          ${progRowHtml('비자 업무','40%')}
+          ${progRowHtml('학생 상담','50%')}
+        </div>
+        <button class="add-btn" onclick="addProgRow('${m}-prog')">+ 항목 추가</button>
+      </div>
+
+      <!-- 주간 이슈 (별도 입력) -->
+      <div class="section">
+        <div class="stitle"><div class="ico ico-r">⚠️</div><h3>주간 이슈 / 리스크</h3></div>
+        <table>
+          <thead><tr>
+            <th style="width:20%">이슈 내용</th><th style="width:12%">관련 학생</th>
+            <th style="width:9%">심각도</th><th style="width:9%">상태</th>
+            <th style="width:20%">대응 방안</th><th>담당자/기한</th>
+          </tr></thead>
+          <tbody id="${m}-wissue">${renderRow('issue')}</tbody>
+        </table>
+        <button class="add-btn" onclick="addRow('${m}-wissue','issue')">+ 행 추가</button>
+      </div>
+
+      <!-- 다음 주 계획 -->
+      <div class="section">
+        <div class="stitle"><div class="ico ico-p">🗓</div><h3>다음 주 주요 계획</h3></div>
+        <table>
+          <thead><tr>
+            <th style="width:22px"></th><th style="width:22%">계획 내용</th><th style="width:11%">구분</th>
+            <th style="width:13%">관련 학생/기관</th><th style="width:10%">완료 목표일</th>
+            <th style="width:10%">우선순위</th><th>준비 사항</th>
+          </tr></thead>
+          <tbody id="${m}-nextweek">${renderRow('nextweek')}</tbody>
+        </table>
+        <button class="add-btn" onclick="addRow('${m}-nextweek','nextweek')">+ 행 추가</button>
+      </div>
+
+      <!-- 주간 총평 -->
+      <div class="section">
+        <div class="stitle"><div class="ico ico-o">💬</div><h3>주간 총평</h3></div>
+        <div class="sum-grid">
+          <div class="sum-card sc-g"><div class="st">✅ 성과 / 잘된 점</div>
+            <textarea id="${m}-sum-good" placeholder="이번 주 성과를 기재해 주세요."></textarea></div>
+          <div class="sum-card sc-o"><div class="st">🔧 개선 필요 사항</div>
+            <textarea id="${m}-sum-improve" placeholder="개선할 사항을 기재해 주세요."></textarea></div>
+          <div class="sum-card sc-b"><div class="st">📌 건의사항</div>
+            <textarea id="${m}-sum-suggest" placeholder="건의사항을 기재해 주세요."></textarea></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="rfooter">
+      <div class="sign-row">
+        <div class="sbox"><div class="sl">작성자</div><div class="sline"></div></div>
+        <div class="sbox"><div class="sl">팀장 확인</div><div class="sline"></div></div>
+        <div class="sbox"><div class="sl">실장 확인</div><div class="sline"></div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-link" onclick="switchReport('${m}','daily',document.querySelector('#panel-${m} .rtab'))">← 일일 보고서</button>
+        <button class="btn btn-excel" onclick="exportExcel('${m}')">📥 Excel 저장</button>
+        <button class="btn btn-primary" onclick="window.print()">🖨 인쇄</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER MEMBER PANELS
+// ═══════════════════════════════════════════════
+function buildUI() {
+  const nav = document.getElementById('member-nav');
+  const panels = document.getElementById('panels');
+  MEMBERS.forEach((cfg,i) => {
+    nav.insertAdjacentHTML('beforeend',`
+      <div class="mtab${i===0?' active':''}" onclick="switchMember('${cfg.id}',this)" id="nav-${cfg.id}">
+        <div class="av ${cfg.avcls}">${cfg.av}</div>
+        <div>
+          <div id="name-${cfg.id}-nav">${cfg.label}</div>
+          <div class="rbadge" id="role-${cfg.id}-nav">${cfg.role}</div>
+        </div>
+      </div>`);
+    panels.insertAdjacentHTML('beforeend',`
+      <div class="member-panel${i===0?' active':''} theme-${cfg.id.replace('me','me')}" id="panel-${cfg.id}">
+        <div class="report-nav">
+          <div class="rtab active" onclick="switchReport('${cfg.id}','daily',this)">📋 일일 보고서</div>
+          <div class="rtab" onclick="switchReport('${cfg.id}','weekly',this)">📊 주간 보고서</div>
+        </div>
+        <div class="report-view active" id="${cfg.id}-daily">${buildDailyHTML(cfg)}</div>
+        <div class="report-view" id="${cfg.id}-weekly">${buildWeeklyHTML(cfg)}</div>
+      </div>`);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// NAV HANDLERS
+// ═══════════════════════════════════════════════
+function switchMember(id, el) {
+  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.member-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function switchReport(m, type, el) {
+  const panel = document.getElementById('panel-'+m);
+  panel.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));
+  panel.querySelectorAll('.report-view').forEach(v=>v.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById(`${m}-${type}`).classList.add('active');
+  window.scrollTo({top:56,behavior:'smooth'});
+  // If switching to weekly, reload
+  if (type==='weekly') {
+    const wk = document.getElementById(`${m}-w-week`)?.value || getWeekStr(today);
+    loadWeeklyView(m, wk);
+  }
+}
+
+function switchWDay(m, day, el) {
+  DAYS.forEach(d=>{
+    const p=document.getElementById(`${m}-wpanel-${d}`); if(p)p.classList.remove('active');
+  });
+  el.closest('.section').querySelectorAll('.dtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`${m}-wpanel-${day}`).classList.add('active');
+}
+
+function onDailyDateChange(m, date) {
+  loadDailyView(m, date);
+}
+
+function onWeekChange(m, weekStr) {
+  loadWeeklyView(m, weekStr);
+}
+
+function manualSync(m) {
+  const date = document.getElementById(`${m}-d-date`)?.value || todayStr;
+  S.save(S.dKey(m,date), collectDaily(m));
+  const weekStr = document.getElementById(`${m}-w-week`)?.value || getWeekStr(today);
+  const dates = getWeekDates(weekStr);
+  const dayIdx = dates.indexOf(date);
+  if (dayIdx >= 0) loadWeeklyDayTab(m, dayIdx, weekStr);
+  setSaveDot('saved');
+  showToast('주간보고서에 반영 완료!');
+}
+
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id='toast';
+    t.style.cssText='position:fixed;bottom:24px;right:24px;background:#1a365d;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0',2000);
+}
+
+// ═══════════════════════════════════════════════
+// ADD ROW
+// ═══════════════════════════════════════════════
+function addRow(tbodyId, type) {
+  document.getElementById(tbodyId)?.insertAdjacentHTML('beforeend', renderRow(type));
+}
+function addProgRow(contId) {
+  document.getElementById(contId)?.insertAdjacentHTML('beforeend', progRowHtml());
+}
+
+// ═══════════════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════════════
+function setP(wrap, e) {
+  const rect=wrap.getBoundingClientRect();
+  const pct=Math.round(((e.clientX-rect.left)/rect.width)*100);
+  wrap.querySelector('.prog-fill').style.width=pct+'%';
+  const inp=wrap.closest('.prog-item').querySelector('.prog-pct input');
+  if(inp) inp.value=pct+'%';
+}
+function syncP(input) {
+  const v=parseInt(input.value)||0;
+  input.closest('.prog-item').querySelector('.prog-fill').style.width=Math.min(100,Math.max(0,v))+'%';
+}
+
+// ═══════════════════════════════════════════════
+// UPDATE NAV LABELS
+// ═══════════════════════════════════════════════
+function updateNavName(id, val) {
+  const el=document.getElementById(`name-${id}-nav`);
+  if(el && val) el.textContent=val;
+}
+function updateNavRole(id, val) {
+  const el=document.getElementById(`role-${id}-nav`);
+  if(el && val) el.textContent=val;
+}
+
+// ═══════════════════════════════════════════════
+// EVENT DELEGATION FOR AUTO-SAVE
+// ═══════════════════════════════════════════════
+document.addEventListener('input', e=>{
+  const content = e.target.closest('.content[data-member]');
+  if (!content) return;
+  triggerSave(content.dataset.member);
+});
+document.addEventListener('change', e=>{
+  const content = e.target.closest('.content[data-member]');
+  if (!content) return;
+  triggerSave(content.dataset.member);
+});
+
+// ═══════════════════════════════════════════════
+// EXCEL EXPORT (SpreadsheetML - no library needed)
+// ═══════════════════════════════════════════════
+function xlCell(v, type='String') {
+  const safe=(v||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return `<Cell><Data ss:Type="${type}">${safe}</Data></Cell>`;
+}
+function xlRow(cells){ return `<Row>${cells.join('')}</Row>`; }
+function xlHeaderRow(headers){ return xlRow(headers.map(h=>xlCell(h))); }
+
+function buildXlSheet(name, headerRow, dataRows) {
+  const rows = [headerRow, ...dataRows.map(r=>xlRow(r.map(v=>xlCell(v))))].join('');
+  return `<Worksheet ss:Name="${name.replace(/[\\\/\?\*\[\]]/g,'_').slice(0,31)}">
+    <Table DefaultColumnWidth="80">${rows}</Table>
+  </Worksheet>`;
+}
+
+function exportExcel(m) {
+  const weekStr = document.getElementById(`${m}-w-week`)?.value || getWeekStr(today);
+  const dates   = getWeekDates(weekStr);
+  const memberName = document.getElementById(`name-${m}-nav`)?.textContent || m;
+
+  // First save current state
+  const activeView = document.querySelector(`#panel-${m} .report-view.active`);
+  if (activeView?.id===`${m}-weekly`) {
+    S.save(S.wKey(m,weekStr), collectWeekly(m));
+  }
+
+  let sheets = '';
+
+  // Day sheets (from daily data)
+  DAY_FULL.forEach((dayName,i)=>{
+    const data = S.load(S.dKey(m, dates[i]));
+    const dateLabel = `${dayName} (${dates[i]})`;
+
+    // Tasks sub-sheet
+    const taskHeader = xlHeaderRow(['업무 내용','구분','담당 학생/기관','소요시간','진행 상태','비고']);
+    const taskRows = (data?.tasks||[]).filter(r=>r.some(v=>v));
+    sheets += buildXlSheet(DAY_NAMES[i]+'_업무', taskHeader,
+      taskRows.length ? taskRows.map(r=>[r[0],r[1],r[2],r[3],r[4],r[5]]) : [['(데이터 없음)','','','','','']]);
+
+    // Students sub-sheet
+    const stuHeader = xlHeaderRow(['학생명','목표 국가/학교','진행 단계','D-day','우선순위','처리 내용']);
+    const stuRows = (data?.students||[]).filter(r=>r.some(v=>v));
+    sheets += buildXlSheet(DAY_NAMES[i]+'_학생', stuHeader,
+      stuRows.length ? stuRows.map(r=>[r[0],r[1],r[2],r[3],r[4],r[5]]) : [['(데이터 없음)']]);
+  });
+
+  // Weekly summary sheet
+  const wData = S.load(S.wKey(m, weekStr)) || {};
+
+  // KPI row
+  const kpiHeader = xlHeaderRow(['신규 상담','원서 접수','합격/오퍼','출국 완료','긴급 처리']);
+  const kpiData   = wData.kpi || ['0','0','0','0','0'];
+  sheets += buildXlSheet('주간_KPI', kpiHeader, [kpiData]);
+
+  // Weekly student progress
+  const wsHeader = xlHeaderRow(['학생명','목표 국가/학교','현재 단계','이번 주 진행','다음 주 목표','마감일','특이사항']);
+  const wsRows   = (wData.wstudents||[]).filter(r=>r.some(v=>v));
+  sheets += buildXlSheet('주간_학생진행', wsHeader,
+    wsRows.length ? wsRows : [['(데이터 없음)']]);
+
+  // Next week plan
+  const nwHeader = xlHeaderRow(['계획 내용','구분','관련 학생/기관','완료 목표일','우선순위','준비 사항']);
+  const nwRows   = (wData.nextweek||[]).filter(r=>r.some(v=>v));
+  sheets += buildXlSheet('다음주_계획', nwHeader,
+    nwRows.length ? nwRows.map(r=>[r[0],r[1],r[2],r[3],r[4],r[5]]) : [['(데이터 없음)']]);
+
+  // Summary sheet
+  const sumHeader = xlHeaderRow(['항목','내용']);
+  sheets += buildXlSheet('주간_총평', sumHeader, [
+    ['✅ 성과 / 잘된 점',   wData.summary?.good    || ''],
+    ['🔧 개선 필요 사항',   wData.summary?.improve || ''],
+    ['📌 건의사항',         wData.summary?.suggest || ''],
+  ]);
+
+  const sheetNames = [...DAY_NAMES.flatMap(d=>[`${d}_업무`,`${d}_학생`]), '주간_KPI','주간_학생진행','다음주_계획','주간_총평'];
+  const wsXml = sheetNames.map(n=>`<ExcelWorksheet><Name>${n}</Name><WorksheetOptions><DisplayGridlines/></WorksheetOptions></ExcelWorksheet>`).join('');
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <Author>${memberName}</Author><Title>주간업무보고서_${weekStr}</Title>
+ </DocumentProperties>
+ <ExcelWorkbook xmlns="urn:schemas-microsoft-com:office:excel">
+  <ExcelWorksheets>${wsXml}</ExcelWorksheets>
+ </ExcelWorkbook>
+ <Styles>
+  <Style ss:ID="Default"><Alignment ss:Vertical="Center" ss:WrapText="1"/>
+   <Font ss:FontName="맑은 고딕" ss:Size="11"/>
+  </Style>
+  <Style ss:ID="header"><Font ss:FontName="맑은 고딕" ss:Size="11" ss:Bold="1"/>
+   <Interior ss:Color="#D9E1F2" ss:Pattern="Solid"/>
+  </Style>
+ </Styles>
+ ${sheets}
+</Workbook>`;
+
+  const blob = new Blob(['﻿'+xml], {type:'application/vnd.ms-excel;charset=UTF-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=`주간보고서_${memberName}_${weekStr}.xls`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  showToast(`${memberName} 주간보고서 Excel 저장 완료!`);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function init() {
+  buildUI();
+  const weekStr = getWeekStr(today);
+  MEMBERS.forEach(cfg=>{
+    const m = cfg.id;
+    // Set daily date to today
+    const dDate = document.getElementById(`${m}-d-date`);
+    if (dDate) dDate.value = todayStr;
+    // Set weekly week
+    const wWeek = document.getElementById(`${m}-w-week`);
+    if (wWeek) wWeek.value = weekStr;
+    // Load today's daily data
+    loadDailyView(m, todayStr);
+    // Update headers
+    updateDailyHeader(m, todayStr);
+    updateWeeklyHeader(m, weekStr);
+  });
+  setSaveDot('saved');
+}
+
+init();
+</script>
+</body>
+</html>
