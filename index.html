@@ -345,10 +345,22 @@ const S = {
   wKey: (m,w) => `weekly_${m}_${w}`,
 
   // 저장: localStorage 즉시 + Firestore 백그라운드
+  // ⚠️ Firestore는 중첩 배열(배열 안의 배열)을 저장 못 하므로 JSON 문자열로 변환해 저장
   save(key, val) {
     try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
-    db.collection('reports').doc(key).set(val)
-      .catch(e => console.error('Firebase 저장 오류:', e));
+    db.collection('reports').doc(key)
+      .set({ json: JSON.stringify(val), updatedAt: Date.now() })
+      .then(() => { setSaveDot('saved'); })
+      .catch(e => { console.error('Firebase 저장 오류:', e); setSaveDot('error'); });
+  },
+
+  // 문서 데이터 → 원본 객체 복원
+  _parse(docData) {
+    if (!docData) return null;
+    if (typeof docData.json === 'string') {
+      try { return JSON.parse(docData.json); } catch(e) { return null; }
+    }
+    return docData; // 구버전 호환
   },
 
   // 로드: localStorage에서 즉시 반환 (UI 빠르게)
@@ -362,9 +374,8 @@ const S = {
     try {
       const snap = await db.collection('reports').doc(key).get();
       if (snap.exists) {
-        const data = snap.data();
-        localStorage.setItem(key, JSON.stringify(data));
-        return data;
+        const data = this._parse(snap.data());
+        if (data) { localStorage.setItem(key, JSON.stringify(data)); return data; }
       }
     } catch(e) { console.error('Firebase 동기화 오류:', e); }
     return null;
@@ -373,13 +384,15 @@ const S = {
   // 실시간 구독 (다른 팀원이 저장하면 자동 반영)
   _listeners: {},
   subscribe(key, callback) {
-    if (this._listeners[key]) this._listeners[key]();
+    if (this._listeners[key]) return; // 이미 구독 중이면 중복 등록 방지
     this._listeners[key] = db.collection('reports').doc(key)
       .onSnapshot(snap => {
         if (snap.exists) {
-          const data = snap.data();
-          try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
-          callback(data);
+          const data = S._parse(snap.data());
+          if (data) {
+            try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
+            callback(data, snap.metadata.hasPendingWrites);
+          }
         }
       }, e => console.error('Firebase 리스너 오류:', e));
   },
@@ -630,8 +643,20 @@ function triggerSave(m) {
 function setSaveDot(state) {
   const dot = document.getElementById('save-dot');
   const txt = document.getElementById('save-txt');
+  if (!dot) return;
+  dot.classList.remove('saving');
+  dot.style.background = '';
   if (state==='saving') { dot.classList.add('saving'); if(txt)txt.textContent='저장 중...'; }
-  else { dot.classList.remove('saving'); if(txt)txt.textContent=`자동저장 완료 ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`; }
+  else if (state==='error') { dot.style.background='#f87171'; if(txt)txt.textContent='⚠ 클라우드 저장 실패 (인터넷 확인)'; }
+  else { if(txt)txt.textContent=`☁ 클라우드 저장됨 ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`; }
+}
+
+// 사용자가 특정 view를 편집 중인지 확인 (실시간 갱신이 입력을 덮어쓰지 않도록)
+function isUserEditing(viewId) {
+  const el = document.activeElement;
+  if (!el) return false;
+  if (!['INPUT','SELECT','TEXTAREA'].includes(el.tagName)) return false;
+  return !!el.closest(`#${viewId}`);
 }
 function doSave(m) {
   const activeView = document.querySelector(`#panel-${m} .report-view.active`);
@@ -949,6 +974,14 @@ function switchMember(id, el) {
   el.classList.add('active');
   document.getElementById('panel-'+id).classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
+  // 전환한 멤버의 현재 화면을 캐시(실시간 동기화로 최신 유지)에서 다시 렌더
+  const active = document.querySelector(`#panel-${id} .report-view.active`);
+  if (active?.id === `${id}-weekly`) {
+    loadWeeklyView(id, currentWeekStr());
+  } else {
+    const date = document.getElementById(`${id}-d-date`)?.value || todayStr;
+    loadDailyView(id, date);
+  }
 }
 
 function switchReport(m, type, el) {
@@ -975,20 +1008,23 @@ function switchWDay(m, day, el) {
 }
 
 async function onDailyDateChange(m, date) {
-  // 먼저 로컬 데이터로 즉시 표시
-  loadDailyView(m, date);
-  // Firestore에서 최신 데이터 동기화
-  const data = await S.syncFromCloud(S.dKey(m, date));
+  updateDailyHeader(m, date);
+  loadDailyView(m, date);                 // 1) 캐시 즉시 표시
+  const data = await S.syncFromCloud(S.dKey(m, date));  // 2) 서버 최신 가져오기
   if (data) loadDailyView(m, date);
-  // 실시간 구독 (다른 팀원 편집 즉시 반영)
-  S.subscribe(S.dKey(m, date), () => loadDailyView(m, date));
+  // 3) 이 날짜를 실시간 구독 (이미 구독 중이면 자동 무시)
+  S.subscribe(S.dKey(m, date), () => onRemoteDailyUpdate(m, date));
 }
 
 async function onWeekChange(m, weekStr) {
+  // 주차 변경 시 새 주차의 일일/주간 문서를 모두 구독
+  updateWeeklyHeader(m, weekStr);
   loadWeeklyView(m, weekStr);
-  const data = await S.syncFromCloud(S.wKey(m, weekStr));
-  if (data) loadWeeklyView(m, weekStr);
-  S.subscribe(S.wKey(m, weekStr), () => loadWeeklyView(m, weekStr));
+  await S.syncFromCloud(S.wKey(m, weekStr));
+  await Promise.all(getWeekDates(weekStr).map(d => S.syncFromCloud(S.dKey(m, d))));
+  loadWeeklyView(m, weekStr);
+  S.subscribe(S.wKey(m, weekStr), () => onRemoteWeeklyUpdate(m, weekStr));
+  getWeekDates(weekStr).forEach(d => S.subscribe(S.dKey(m, d), () => onRemoteDailyUpdate(m, d)));
 }
 
 function manualSync(m) {
@@ -1176,13 +1212,60 @@ function exportExcel(m) {
 }
 
 // ═══════════════════════════════════════════════
+// 실시간 동기화 (전 멤버 / 이번 주 전체)
+//  - onSnapshot은 구독 즉시 서버 데이터를 1회 전달하므로
+//    초기 로드와 실시간 갱신을 한 번에 처리한다.
+// ═══════════════════════════════════════════════
+function currentWeekStr() {
+  // me 패널 기준 (모든 멤버 동일 주차 사용)
+  return document.getElementById('me-w-week')?.value || getWeekStr(today);
+}
+
+function onRemoteDailyUpdate(m, date) {
+  const weekStr = currentWeekStr();
+  // 1) 일일 view가 해당 날짜를 보고 있고, 편집 중이 아니면 갱신
+  const curDate = document.getElementById(`${m}-d-date`)?.value;
+  const dailyActive = document.querySelector(`#panel-${m} .report-view.active`)?.id === `${m}-daily`;
+  if (curDate === date && !(dailyActive && isUserEditing(`${m}-daily`))) {
+    loadDailyView(m, date);
+  }
+  // 2) 주간 보고서의 해당 요일 탭도 갱신 (편집 중이 아니면)
+  const dayIdx = getWeekDates(weekStr).indexOf(date);
+  if (dayIdx >= 0 && !isUserEditing(`${m}-weekly`)) {
+    loadWeeklyDayTab(m, dayIdx, weekStr);
+  }
+}
+
+function onRemoteWeeklyUpdate(m, weekStr) {
+  const weeklyActive = document.querySelector(`#panel-${m} .report-view.active`)?.id === `${m}-weekly`;
+  if (weeklyActive && isUserEditing(`${m}-weekly`)) return;
+  if (weeklyActive) loadWeeklyView(m, weekStr);
+}
+
+function setupRealtimeAll() {
+  const weekStr = currentWeekStr();
+  const dates = new Set(getWeekDates(weekStr));
+  dates.add(todayStr); // 이번 주가 아니어도 오늘 포함
+
+  MEMBERS.forEach(cfg => {
+    const m = cfg.id;
+    // 일일: 이번 주 평일 전체 + 오늘
+    dates.forEach(date => {
+      S.subscribe(S.dKey(m, date), () => onRemoteDailyUpdate(m, date));
+    });
+    // 주간
+    S.subscribe(S.wKey(m, weekStr), () => onRemoteWeeklyUpdate(m, weekStr));
+  });
+}
+
+// ═══════════════════════════════════════════════
 // INIT (Firebase 인증 후 호출됨)
 // ═══════════════════════════════════════════════
 async function init() {
   buildUI();
   const weekStr = getWeekStr(today);
 
-  // 1) UI 즉시 렌더 (localStorage 기반)
+  // 1) UI 즉시 렌더 (localStorage 기반 — 오프라인 캐시)
   MEMBERS.forEach(cfg => {
     const m = cfg.id;
     const dDate = document.getElementById(`${m}-d-date`);
@@ -1193,25 +1276,12 @@ async function init() {
     updateDailyHeader(m, todayStr);
     updateWeeklyHeader(m, weekStr);
   });
+
+  // 2) 실시간 구독 시작 → 서버 데이터가 즉시 들어와 모든 멤버 화면이 채워짐
+  showToast('☁️ 클라우드 동기화 시작...');
+  setupRealtimeAll();
   setSaveDot('saved');
-
-  // 2) Firestore에서 최신 데이터 가져와 동기화
-  showToast('☁️ 클라우드에서 데이터 동기화 중...');
-  await Promise.all(MEMBERS.flatMap(cfg => [
-    S.syncFromCloud(S.dKey(cfg.id, todayStr)).then(data => {
-      if (data) loadDailyView(cfg.id, todayStr);
-    }),
-    S.syncFromCloud(S.wKey(cfg.id, weekStr)).then(data => {
-      if (data) { /* 주간은 탭 열 때 로드 */ }
-    }),
-  ]));
-  showToast('✅ 동기화 완료!');
-
-  // 3) 현재 활성 멤버(me) 실시간 구독 시작
-  S.subscribe(S.dKey('me', todayStr), () => {
-    const active = document.querySelector('#panel-me .report-view.active');
-    if (active?.id === 'me-daily') loadDailyView('me', todayStr);
-  });
+  setTimeout(() => showToast('✅ 팀 공유 동기화 활성화됨'), 1200);
 }
 </script>
 </body>
